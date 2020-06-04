@@ -67,12 +67,10 @@ def getOutput(sampleName,outdir,outputFile,event,ai_cutoff,loh_cutoff):
     
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, 'hn:g:b:o:v', ["cbs=", "minDp=", "mingQual=", "ai=", "loh=", "hom="])
+        opts, args = getopt.getopt(argv, 'hn:g:b:o:v', ["ai=", "loh=", "hom="])
     except getopt.GetoptError:
         sys.exit()
 
-    minDp = 0
-    mingQual = 0
     ai_cutoff = 0.15
     loh_cutoff = 0.4
 
@@ -87,14 +85,8 @@ def main(argv):
             bafdir = arg
         elif opt == '-o':
             outdir = arg
-        elif opt == '--cbs':
-            cbsdir = arg
         elif opt == '-v':
             visualize = True
-        elif opt == '--minDp':
-            minDp = int(arg)
-        elif opt == '--mingQual':
-            mingQual = int(arg)
         elif opt == '--hom':
             hom_cutoff = float(arg)
         elif opt == '--ai':
