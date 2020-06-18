@@ -45,7 +45,6 @@ class SlidingWindow:
         self.blocks = []
         self.regionStart = None
         self.regionEnd = None
-        #self.region = None
         self.regionDetect = None
 
     def newWindow(self,start,end):
@@ -100,7 +99,7 @@ class SlidingWindow:
                 return (True)
             else:
                 return(False)
-
+            
             return(resultList)
 
         def confin(mean,sd,sampleCount):
@@ -124,7 +123,7 @@ class SlidingWindow:
                     ref_hetRatios.append(ref_hetCounts[i]/ref_snpCounts[i])
                 else:
                     ref_hetRatios.append(0)
-
+            
         else:
             ref_snpCounts = []
             ref_hetRatios = []
@@ -152,11 +151,10 @@ class SlidingWindow:
 
         self.newBlock(self.currentEnd,nextEnd)
 
-        
         while not self.refSet == [] and self.refSet[0].pos  < nextStart:
             self.refSet.remove(self.refSet[0])
 
-        for snp in outSet:       
+        for snp in outSet:         
             out.write('chr%s\t%i\t%s\t%s\t%i\t%i\t%.2f\t%s\n' %(snp.chrom,snp.pos,snp.ref,snp.alt,snp.totalDp,snp.gqual,snp.baf,regionDetect))
 
         self.newWindow(nextStart,nextEnd)
@@ -201,11 +199,13 @@ class SlidingWindow:
 
 def detectAI(name,chrom,chrStart,chrEnd,bafdir,refdir,outdir,window_size,window_step,minDp=0,mingQual=0):
     infile = '%s/%s_chr%s.baf' %(bafdir,name,chrom)
-    refSNPFile = '%s/chr%s.SNPset' %(refdir,chrom)
+    if refdir:
+        refSNPFile = '%s/chr%s.SNPset' %(refdir,chrom)
 
     out = open('%s/%s_chr%s.bafSeg' %(outdir,name,chrom),'w')
     outR = open('%s/%s_chr%s.segments' %(outdir,name,chrom),'w')
-    print ('%s - Calculating BAFs and detecting AI/LOH for chr%s' %(datetime.datetime.now().time(),str(chrom)))
+
+    print ('%s - Calculating BAFs and detecting ROH for chr%s' %(datetime.datetime.now().time(),str(chrom)))
 
     window = SlidingWindow(chrom,window_size,window_step)
     hetRatio = 0.6
@@ -220,29 +220,30 @@ def detectAI(name,chrom,chrStart,chrEnd,bafdir,refdir,outdir,window_size,window_
             if snp.totalDp >= minDp and snp.gqual >= mingQual:
                 snpSet.append(snp)
 
-    sampleCount = None
-    for line in open(refSNPFile,'r'):
-        line = line.strip('\n').split('\t')
-        pos = int(line[0])
-        refSNP = SNPRecord(chrom,pos)
-        refSNP.newSNPfromPop(line)
+    if not window.currentStart:
+        window.newWindow(chrStart,chrStart+window.size)
 
-        if not window.currentStart:
-            window.newWindow(chrStart,chrStart+window.size)
+    if refdir:
+        refSNPFile = '%s/chr%s.SNPset' %(refdir,chrom)
+        sampleCount = None
+        for line in open(refSNPFile,'r'):
+            line = line.strip('\n').split('\t')
+            pos = int(line[0])
+            refSNP = SNPRecord(chrom,pos)
+            refSNP.newSNPfromPop(line)
 
-        while pos > window.currentEnd:
-            nextStart = window.currentStart + window.step
-            nextEnd = nextStart + window.size
-            window.slide(nextStart,nextEnd,snpSet,out,outR)
-        window.extend(refSNP)
-                
+            while pos > window.currentEnd:
+                nextStart = window.currentStart + window.step
+                nextEnd = nextStart + window.size
+                window.slide(nextStart,nextEnd,snpSet,out,outR)
+            window.extend(refSNP)
+
     while window.currentEnd < chrEnd:
         nextStart = window.currentStart + window.step
         if (window.currentEnd + window.step) <= chrEnd:
             nextEnd = nextStart + window.size
         else:
             nextEnd = chrEnd
-
         window.slide(nextStart,nextEnd,snpSet,out,outR)
 
     window.empty(snpSet,out,outR)
@@ -266,11 +267,12 @@ def main(argv):
     except getopt.GetoptError:
         print (usage)
         sys.exit()
-    	
-    window_size = 10000
+         
+    window_size = 50000
     visualize = False
     ncores = 1
-    window_step = None
+    window_step = window_size
+    refdir = None
     vcffile = None
     bafdir = None
     name = 'sample'
