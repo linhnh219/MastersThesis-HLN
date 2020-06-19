@@ -64,7 +64,7 @@ confirmCNV.py
 				-n 	sample name
 				-c	path to BED-formatted file containing CNV calls
 				-s	path to BED-formatted file containing AI/LOH calls
-				-o output directory
+				-o 	output directory
 				
 				-
 				
